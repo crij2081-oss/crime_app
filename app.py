@@ -17,6 +17,7 @@ import streamlit as st
 from sklearn.cluster import DBSCAN
 
 import realtime
+import style
 
 BASE = Path(__file__).parent
 DB_PATH = BASE / "crime.db"
@@ -39,6 +40,7 @@ def bootstrap():
 
 
 bootstrap()
+style.inject()
 
 
 # ---------------------------------------------------------------- helpers
@@ -92,12 +94,18 @@ BLOCK_NAMES = {0: "Night (00-05)", 1: "Morning (06-11)", 2: "Afternoon (12-17)",
 
 # ---------------------------------------------------------------- login
 def login_page():
-    st.title("🚨 Crime Intelligence System")
-    st.caption("Crime detection and fatality prediction for Police and Journalists")
+    style.hero("🚨 Crime Intelligence System",
+               "AI-powered crime detection and fatality prediction for Police and Journalists",
+               ["Live alerts", "Hotspot maps", "Fatality risk AI", "Spike detection", "Role-based access"])
     if not DB_PATH.exists():
         st.error("Database not found. Run `python generate_data.py` and `python train_models.py` first.")
         st.stop()
-    col, _ = st.columns([1, 1])
+    col, side = st.columns([1, 1])
+    with side:
+        style.feature_card("🔴 Live Operations Center", "Auto-refreshing incident feed with instant alerts for police")
+        style.feature_card("📍 Hotspot detection", "Machine learning finds crime clusters and high-risk times")
+        style.feature_card("⚠️ Fatality prediction", "Every new case gets a fatality-risk probability")
+        style.feature_card("📰 Live Newsroom", "Anonymised trends and developing situations for journalists")
     with col:
         with st.form("login"):
             u = st.text_input("Username")
@@ -106,7 +114,7 @@ def login_page():
         if ok:
             df = q("""SELECT u.user_id, u.username, u.full_name, r.role_name
                       FROM users u JOIN roles r ON r.role_id = u.role_id
-                      WHERE u.username = ? AND u.password_hash = ?""", (u, hash_pw(p)))
+                      WHERE u.username = ? AND u.password_hash = ?""", (u.strip().lower(), hash_pw(p.strip())))
             if df.empty:
                 st.error("Invalid username or password")
             else:
@@ -455,8 +463,8 @@ def main():
         return
     role = user["role_name"]
     st.sidebar.title("🚨 Crime Intelligence")
-    st.sidebar.write(f"**{user['full_name']}**")
-    st.sidebar.caption(f"Role: {role}")
+    with st.sidebar:
+        style.user_card(user["full_name"], role)
     page = st.sidebar.radio("Navigate", list(PAGES[role]))
     if st.sidebar.button("Logout"):
         st.session_state.clear()
